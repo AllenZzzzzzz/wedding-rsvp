@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { verifyToken } from '@/lib/auth';
 
 const GUEST_COOKIE = 'wedding_gate';
 const ADMIN_COOKIE = 'admin_gate';
@@ -7,7 +8,7 @@ const ADMIN_COOKIE = 'admin_gate';
 // Two separate gates:
 // - guest site (/, /gallery, etc.) needs the shared wedding password, set via /gate
 // - /admin needs the separate admin password, set via /admin/login
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const isPublicAsset =
@@ -26,7 +27,9 @@ export function middleware(request: NextRequest) {
   if (isAdminRoute) {
     if (isAdminLogin) return NextResponse.next();
     const cookie = request.cookies.get(ADMIN_COOKIE);
-    if (cookie?.value === 'ok') return NextResponse.next();
+    if (await verifyToken('admin', process.env.ADMIN_PASSWORD, cookie?.value)) {
+      return NextResponse.next();
+    }
     const url = request.nextUrl.clone();
     url.pathname = '/admin/login';
     return NextResponse.redirect(url);
@@ -37,7 +40,9 @@ export function middleware(request: NextRequest) {
   if (isGateRoute) return NextResponse.next();
 
   const cookie = request.cookies.get(GUEST_COOKIE);
-  if (cookie?.value === 'ok') return NextResponse.next();
+  if (await verifyToken('guest', process.env.WEDDING_PASSWORD, cookie?.value)) {
+    return NextResponse.next();
+  }
 
   if (isRsvpApi) {
     return NextResponse.json({ error: 'Not authorized' }, { status: 401 });
