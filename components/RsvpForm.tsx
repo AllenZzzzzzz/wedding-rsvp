@@ -63,21 +63,14 @@ export default function RsvpForm() {
       return;
     }
     setSubmitting(false);
-    if (res.status >= 500) {
-      setFailed(true);
-      return;
-    }
-    if (res.status === 401) {
-      setError('Your session expired. Please reload the page and enter the password again.');
-      return;
-    }
 
     if (res.status === 409 && data.possibleDuplicate) {
       setPossibleDup(data.possibleDuplicate.full_name);
       return;
     }
+    // Anything else that isn't a success means the RSVP was not saved.
     if (!res.ok) {
-      setError(data.error || 'Something went wrong. Please try again.');
+      setFailed(true);
       return;
     }
     setDone(true);
