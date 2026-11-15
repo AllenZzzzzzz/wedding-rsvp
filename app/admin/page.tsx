@@ -2,6 +2,19 @@
 
 import { useEffect, useState } from 'react';
 
+const MEAL_OPTIONS: { value: string; label: string }[] = [
+  { value: 'non_veg', label: 'Non-vegetarian' },
+  { value: 'vegetarian', label: 'Vegetarian' },
+  { value: 'halal', label: 'Halal' },
+  { value: 'vegan', label: 'Vegan' },
+  { value: 'other', label: 'Other (see dietary)' },
+];
+
+function mealLabel(v: string | null) {
+  if (!v) return '—';
+  return MEAL_OPTIONS.find((m) => m.value === v)?.label ?? v;
+}
+
 type Guest = {
   id: string;
   full_name: string;
@@ -50,7 +63,11 @@ export default function AdminPage() {
     const res = await fetch('/api/admin/guests', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: editingId, ...draft }),
+      body: JSON.stringify({
+        id: editingId,
+        ...draft,
+        plus_one_meal_preference: draft.plus_one ? draft.plus_one_meal_preference || null : null,
+      }),
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
@@ -138,7 +155,22 @@ export default function AdminPage() {
                         <td style={td}>
                           <input value={draft.plus_one_name || ''} onChange={(e) => setDraft({ ...draft, plus_one_name: e.target.value, plus_one: !!e.target.value })} style={editInput} placeholder="+1 name" />
                         </td>
-                        <td style={td}><input value={draft.meal_preference || ''} onChange={(e) => setDraft({ ...draft, meal_preference: e.target.value })} style={editInput} /></td>
+                        <td style={td}>
+                          <select value={draft.meal_preference || ''} onChange={(e) => setDraft({ ...draft, meal_preference: e.target.value || null })} style={editInput}>
+                            <option value="">Select one</option>
+                            {MEAL_OPTIONS.map((m) => (
+                              <option key={m.value} value={m.value}>{m.label}</option>
+                            ))}
+                          </select>
+                          {draft.plus_one && (
+                            <select value={draft.plus_one_meal_preference || ''} onChange={(e) => setDraft({ ...draft, plus_one_meal_preference: e.target.value || null })} style={{ ...editInput, marginTop: 6 }}>
+                              <option value="">+1 meal</option>
+                              {MEAL_OPTIONS.map((m) => (
+                                <option key={m.value} value={m.value}>{m.label}</option>
+                              ))}
+                            </select>
+                          )}
+                        </td>
                         <td style={td}><input value={draft.dietary_restrictions || ''} onChange={(e) => setDraft({ ...draft, dietary_restrictions: e.target.value })} style={editInput} /></td>
                         <td style={td}><input value={draft.well_wishes || ''} onChange={(e) => setDraft({ ...draft, well_wishes: e.target.value })} style={editInput} /></td>
                         <td style={td}><input value={draft.contact || ''} onChange={(e) => setDraft({ ...draft, contact: e.target.value })} style={editInput} /></td>
@@ -156,7 +188,14 @@ export default function AdminPage() {
                           </span>
                         </td>
                         <td style={td}>{g.plus_one_name || (g.plus_one ? 'Yes' : '—')}</td>
-                        <td style={td}>{g.meal_preference || '—'}</td>
+                        <td style={td}>
+                          <div>{mealLabel(g.meal_preference)}</div>
+                          {g.plus_one && (
+                            <div style={{ color: 'var(--ink-soft)', marginTop: 2 }}>
+                              +1: {mealLabel(g.plus_one_meal_preference)}
+                            </div>
+                          )}
+                        </td>
                         <td style={td}>{g.dietary_restrictions || '—'}</td>
                         <td style={{ ...td, maxWidth: 220 }}>{g.well_wishes || '—'}</td>
                         <td style={td}>{g.contact || '—'}</td>
