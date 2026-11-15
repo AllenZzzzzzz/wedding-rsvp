@@ -26,34 +26,51 @@ export default function RsvpForm() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [done, setDone] = useState(false);
+  const [failed, setFailed] = useState(false);
   const [possibleDup, setPossibleDup] = useState<string | null>(null);
   const successRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (done) successRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }, [done]);
+    if (done || failed) successRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [done, failed]);
 
   async function submit(force = false) {
     setSubmitting(true);
     setError('');
-    const res = await fetch('/api/rsvp', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        full_name: fullName,
-        attending: attending === 'yes',
-        plus_one: attending === 'yes' ? plusOne : false,
-        plus_one_name: plusOne ? plusOneName : null,
-        meal_preference: attending === 'yes' ? meal || null : null,
-        plus_one_meal_preference: plusOne ? plusOneMeal || null : null,
-        dietary_restrictions: dietary || null,
-        well_wishes: wellWishes || null,
-        contact: contact || null,
-        force,
-      }),
-    });
-    const data = await res.json();
+    let res: Response;
+    let data: { error?: string; possibleDuplicate?: { full_name: string } };
+    try {
+      res = await fetch('/api/rsvp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          full_name: fullName,
+          attending: attending === 'yes',
+          plus_one: attending === 'yes' ? plusOne : false,
+          plus_one_name: plusOne ? plusOneName : null,
+          meal_preference: attending === 'yes' ? meal || null : null,
+          plus_one_meal_preference: plusOne ? plusOneMeal || null : null,
+          dietary_restrictions: dietary || null,
+          well_wishes: wellWishes || null,
+          contact: contact || null,
+          force,
+        }),
+      });
+      data = await res.json();
+    } catch {
+      setSubmitting(false);
+      setFailed(true);
+      return;
+    }
     setSubmitting(false);
+    if (res.status >= 500) {
+      setFailed(true);
+      return;
+    }
+    if (res.status === 401) {
+      setError('Your session expired. Please reload the page and enter the password again.');
+      return;
+    }
 
     if (res.status === 409 && data.possibleDuplicate) {
       setPossibleDup(data.possibleDuplicate.full_name);
@@ -130,6 +147,92 @@ export default function RsvpForm() {
             {plusOne && plusOneName.trim() ? ` · With ${plusOneName.trim()}` : ''}
           </p>
         )}
+      </div>
+    );
+  }
+
+  if (failed) {
+    const mealText = (v: MealOption | '') => MEAL_OPTIONS.find((m) => m.value === v)?.label || 'Not selected';
+    const going = attending === 'yes';
+    const lines = [
+      'Hi! I tried to RSVP on the wedding website but it didn’t save. Here are my details:',
+      `Name: ${fullName.trim()}`,
+      `Attending: ${going ? 'Yes' : 'No'}`,
+    ];
+    if (going) {
+      lines.push(`Meal: ${mealText(meal)}`);
+      lines.push(`Plus one: ${plusOne ? plusOneName.trim() || 'Yes' : 'No'}`);
+      if (plusOne) lines.push(`Plus one meal: ${mealText(plusOneMeal)}`);
+    }
+    if (dietary.trim()) lines.push(`Dietary: ${dietary.trim()}`);
+    if (wellWishes.trim()) lines.push(`Well wishes: ${wellWishes.trim()}`);
+    if (contact.trim()) lines.push(`Contact: ${contact.trim()}`);
+    const message = lines.join('\n');
+    return (
+      <div
+        ref={successRef}
+        role="alert"
+        style={{ ...card, border: '2px solid var(--danger)' }}
+      >
+        <p style={{ fontSize: 22, margin: 0, color: 'var(--danger)', textAlign: 'center' }}>
+          Our RSVP system is down
+        </p>
+        <p style={{ ...small, fontSize: 14, marginTop: 8, textAlign: 'center' }}>
+          Your RSVP wasn’t saved. Tap below to send your answers to us on WhatsApp instead.
+        </p>
+        <pre
+          style={{
+            ...small,
+            whiteSpace: 'pre-wrap',
+            background: 'var(--paper)',
+            border: '1px dashed var(--line)',
+            borderRadius: 8,
+            padding: '10px 12px',
+            margin: '14px 0 0',
+          }}
+        >
+          {message}
+        </pre>
+        <a
+          href={`https://wa.me/?text=${encodeURIComponent(message)}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: 'block',
+            textAlign: 'center',
+            marginTop: 14,
+            padding: '12px 18px',
+            borderRadius: 999,
+            background: '#25d366',
+            color: '#08331a',
+            fontFamily: "'Jost', Arial, sans-serif",
+            fontSize: 14,
+            fontWeight: 600,
+            textDecoration: 'none',
+          }}
+        >
+          Send to Allen or Yoon
+        </a>
+        <p style={{ ...small, textAlign: 'center', marginTop: 8 }}>
+          WhatsApp will let you choose who to send it to.
+        </p>
+        <p style={{ textAlign: 'center', margin: '10px 0 0' }}>
+          <button
+            type="button"
+            onClick={() => setFailed(false)}
+            style={{
+              border: 'none',
+              background: 'none',
+              color: 'var(--ink-soft)',
+              textDecoration: 'underline',
+              cursor: 'pointer',
+              fontFamily: "'Jost', Arial, sans-serif",
+              fontSize: 12.5,
+            }}
+          >
+            Try again
+          </button>
+        </p>
       </div>
     );
   }
