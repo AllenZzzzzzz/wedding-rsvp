@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 type MealOption = 'non_veg' | 'vegetarian' | 'halal' | 'vegan' | 'other';
 
@@ -27,6 +27,11 @@ export default function RsvpForm() {
   const [error, setError] = useState('');
   const [done, setDone] = useState(false);
   const [possibleDup, setPossibleDup] = useState<string | null>(null);
+  const successRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (done) successRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [done]);
 
   async function submit(force = false) {
     setSubmitting(true);
@@ -72,16 +77,59 @@ export default function RsvpForm() {
   }
 
   if (done) {
+    const firstName = fullName.trim().split(' ')[0];
+    const going = attending === 'yes';
     return (
-      <div style={card}>
-        <p style={{ fontSize: 20, fontStyle: 'italic', margin: 0 }}>
-          Thank you, {fullName.split(' ')[0]} — your RSVP is in.
+      <div
+        ref={successRef}
+        role="status"
+        aria-live="polite"
+        style={{
+          ...card,
+          textAlign: 'center',
+          border: going ? '2px solid var(--ok)' : '1px solid var(--line)',
+        }}
+      >
+        {going && (
+          <div
+            aria-hidden="true"
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: '50%',
+              background: 'var(--ok)',
+              color: 'var(--paper)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 28,
+              margin: '0 auto 12px',
+            }}
+          >
+            ✓
+          </div>
+        )}
+        <p
+          style={{
+            fontSize: 24,
+            margin: 0,
+            color: going ? 'var(--ok)' : 'inherit',
+            fontStyle: going ? 'normal' : 'italic',
+          }}
+        >
+          {going ? 'You’re on the list!' : `Thank you, ${firstName}.`}
         </p>
-        <p style={{ ...small, marginTop: 8 }}>
-          {attending === 'yes'
-            ? 'We can’t wait to celebrate with you.'
+        <p style={{ ...small, fontSize: 14, marginTop: 8 }}>
+          {going
+            ? `Thank you, ${firstName}. We can’t wait to celebrate with you.`
             : 'You’ll be missed — thank you for letting us know.'}
         </p>
+        {going && (
+          <p style={{ ...small, marginTop: 12 }}>
+            Attending · 6 March 2027 · Heritage Garden
+            {plusOne && plusOneName.trim() ? ` · With ${plusOneName.trim()}` : ''}
+          </p>
+        )}
       </div>
     );
   }
