@@ -47,22 +47,32 @@ export default function AdminPage() {
 
   async function saveEdit() {
     if (!editingId) return;
-    await fetch('/api/admin/guests', {
+    const res = await fetch('/api/admin/guests', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: editingId, ...draft }),
     });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      alert(`Couldn’t save changes: ${data.error || res.statusText}`);
+      return;
+    }
     setEditingId(null);
     load();
   }
 
   async function removeGuest(id: string) {
     if (!confirm('Remove this guest from the list? This cannot be undone.')) return;
-    await fetch('/api/admin/guests', {
+    const res = await fetch('/api/admin/guests', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id }),
     });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      alert(`Couldn’t delete guest: ${data.error || res.statusText}`);
+      return;
+    }
     load();
   }
 
