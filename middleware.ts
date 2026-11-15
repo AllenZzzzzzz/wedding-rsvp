@@ -16,6 +16,10 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/images');
   if (isPublicAsset) return NextResponse.next();
 
+  // Daily Supabase keep-alive from Vercel cron. It has no cookies, so it skips
+  // the password gates; the route itself checks CRON_SECRET.
+  if (pathname === '/api/keepalive') return NextResponse.next();
+
   const isAdminRoute = pathname.startsWith('/admin') || pathname.startsWith('/api/admin');
   const isAdminLogin = pathname === '/admin/login' || pathname.startsWith('/api/admin/login');
 

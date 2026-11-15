@@ -36,11 +36,21 @@ export default function AdminPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Partial<Guest>>({});
 
+  const [loadError, setLoadError] = useState('');
+
   async function load() {
     setLoading(true);
-    const res = await fetch('/api/admin/guests');
-    const data = await res.json();
-    setGuests(data.guests || []);
+    setLoadError('');
+    try {
+      const res = await fetch('/api/admin/guests');
+      const data = await res.json();
+      if (!res.ok || !data.guests) throw new Error(data.error || res.statusText);
+      setGuests(data.guests);
+    } catch (e) {
+      setLoadError(
+        'Couldn’t load the guest list. The database may be paused, or your admin session may have expired.'
+      );
+    }
     setLoading(false);
   }
 
@@ -119,15 +129,25 @@ export default function AdminPage() {
           </a>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10, marginBottom: 28 }}>
-          <Stat label="Attending" value={attendingCount} color="var(--ok)" />
-          <Stat label="Plus ones" value={plusOnes} color="var(--gold)" />
-          <Stat label="Total pax" value={totalPax} color="var(--accent)" />
-          <Stat label="Declined" value={declined} color="var(--danger)" />
-        </div>
+        {!loadError && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10, marginBottom: 28 }}>
+            <Stat label="Attending" value={attendingCount} color="var(--ok)" />
+            <Stat label="Plus ones" value={plusOnes} color="var(--gold)" />
+            <Stat label="Total pax" value={totalPax} color="var(--accent)" />
+            <Stat label="Declined" value={declined} color="var(--danger)" />
+          </div>
+        )}
 
         {loading ? (
           <p style={{ fontFamily: "'Jost', Arial, sans-serif", color: 'var(--ink-soft)' }}>Loading…</p>
+        ) : loadError ? (
+          <div role="alert" style={{ border: '2px solid var(--danger)', borderRadius: 10, padding: '16px 18px', fontFamily: "'Jost', Arial, sans-serif" }}>
+            <p style={{ margin: 0, color: 'var(--danger)', fontWeight: 600 }}>{loadError}</p>
+            <p style={{ margin: '6px 0 12px', fontSize: 13, color: 'var(--ink-soft)' }}>
+              This does not mean the list is empty. Check your Supabase project, then retry.
+            </p>
+            <button onClick={load} style={linkBtn}>Retry</button>
+          </div>
         ) : guests.length === 0 ? (
           <p style={{ fontFamily: "'Jost', Arial, sans-serif", color: 'var(--ink-soft)' }}>No RSVPs yet.</p>
         ) : (
