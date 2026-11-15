@@ -135,7 +135,7 @@ export default function AdminPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: "'Jost', Arial, sans-serif", fontSize: 13.5 }}>
               <thead>
                 <tr style={{ background: 'var(--paper-raised)', textAlign: 'left' }}>
-                  {['Name', 'Status', '+1', 'Meal', 'Dietary', 'Well wishes', 'Contact', ''].map((h) => (
+                  {['Name', 'Status', '+1', 'Meal', '+1 meal', 'Dietary', 'Well wishes', 'Contact', ''].map((h) => (
                     <th key={h} style={th}>{h}</th>
                   ))}
                 </tr>
@@ -162,13 +162,17 @@ export default function AdminPage() {
                               <option key={m.value} value={m.value}>{m.label}</option>
                             ))}
                           </select>
-                          {draft.plus_one && (
-                            <select value={draft.plus_one_meal_preference || ''} onChange={(e) => setDraft({ ...draft, plus_one_meal_preference: e.target.value || null })} style={{ ...editInput, marginTop: 6 }}>
-                              <option value="">+1 meal</option>
+                        </td>
+                        <td style={td}>
+                          {draft.plus_one ? (
+                            <select value={draft.plus_one_meal_preference || ''} onChange={(e) => setDraft({ ...draft, plus_one_meal_preference: e.target.value || null })} style={editInput}>
+                              <option value="">Select one</option>
                               {MEAL_OPTIONS.map((m) => (
                                 <option key={m.value} value={m.value}>{m.label}</option>
                               ))}
                             </select>
+                          ) : (
+                            '—'
                           )}
                         </td>
                         <td style={td}><input value={draft.dietary_restrictions || ''} onChange={(e) => setDraft({ ...draft, dietary_restrictions: e.target.value })} style={editInput} /></td>
@@ -188,14 +192,8 @@ export default function AdminPage() {
                           </span>
                         </td>
                         <td style={td}>{g.plus_one_name || (g.plus_one ? 'Yes' : '—')}</td>
-                        <td style={td}>
-                          <div>{mealLabel(g.meal_preference)}</div>
-                          {g.plus_one && (
-                            <div style={{ color: 'var(--ink-soft)', marginTop: 2 }}>
-                              +1: {mealLabel(g.plus_one_meal_preference)}
-                            </div>
-                          )}
-                        </td>
+                        <td style={td}>{mealLabel(g.meal_preference)}</td>
+                        <td style={td}>{g.plus_one ? mealLabel(g.plus_one_meal_preference) : '—'}</td>
                         <td style={td}>{g.dietary_restrictions || '—'}</td>
                         <td style={{ ...td, maxWidth: 220 }}>{g.well_wishes || '—'}</td>
                         <td style={td}>{g.contact || '—'}</td>
